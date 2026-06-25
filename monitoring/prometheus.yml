@@ -1,0 +1,11 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "mon-api"
+
+    static_configs:
+      - targets:
+          - "mon-api:8000"
+
+    metrics_path: "/metrics"

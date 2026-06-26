@@ -9,12 +9,15 @@ terraform {
 
 provider "docker" {}
 
+# Crée le réseau directement (plus besoin de docker compose)
+resource "docker_network" "cicd" {
+  name = "cicd-network"
+}
+
 resource "docker_image" "api" {
   name         = var.image_name
   keep_locally = true
 }
-
-
 
 resource "docker_container" "staging" {
   name  = "api-staging"
@@ -22,11 +25,11 @@ resource "docker_container" "staging" {
 
   ports {
     internal = 8000
-    external = var.staging_port
+    external = 8001
   }
 
   networks_advanced {
-    name = "mon-api_cicd-network"
+    name = docker_network.cicd.name
   }
 
   healthcheck {

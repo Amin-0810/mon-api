@@ -54,7 +54,7 @@ jobs:
 
       # Stage 6 - Trivy
       - name: '6. Build image for Trivy'
-        run: docker build -t ${{ env.IMAGE_NAME }}:test .
+        run: docker build --no-cache -t ghcr.io/amin-0810/mon-api:test .
 
       - name: '6. Trivy Security Scan'
         uses: aquasecurity/trivy-action@master

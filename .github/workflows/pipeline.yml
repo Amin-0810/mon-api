@@ -83,6 +83,6 @@ jobs:
       # Stage 9 - Smoke Test
       - name: '9. Smoke Test'
         run: |
-          sleep 10
-          curl -f http://localhost:8000/health
+          sleep 15
+          curl -f http://localhost:8001/health
           echo "Smoke test passed!"

@@ -73,8 +73,9 @@ jobs:
 
       # Stage 8 - Terraform
       - name: '8. Terraform Apply'
+        uses: hashicorp/setup-terraform@v3
+      - name: '8. Terraform Init & Apply'
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           cd infra/
           terraform init
           terraform apply -auto-approve

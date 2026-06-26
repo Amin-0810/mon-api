@@ -1,7 +1,7 @@
 variable "image_name" {
   description = "Image Docker à déployer"
   type        = string
-  default     = "mon-api:latest"
+  default     = "ghcr.io/amin-0810/mon-api:latest"
 }
 
 variable "staging_port" {

@@ -1,0 +1,84 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # Stage 1 - Checkout
+      - name: '1. Checkout'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: echo "SHA = ${{ github.sha }}"
+
+      # Stage 2 - Lint
+      - name: '2. Lint'
+        run: |
+          pip install flake8
+          flake8 app/ --max-line-length=100
+
+      # Stage 3 - Build & Test
+      - name: '3. Build & Test'
+        run: |
+          pip install -r requirements.txt
+          pytest tests/ --cov=app --cov-report=xml -v
+
+      # Stage 4 - SonarQube
+      - name: '4. SonarQube Scan'
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      # Stage 5 - Quality Gate
+      - name: '5. Quality Gate'
+        uses: SonarSource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # Stage 6 - Trivy
+      - name: '6. Build image for Trivy'
+        run: docker build -t ${{ env.IMAGE_NAME }}:test .
+
+      - name: '6. Trivy Security Scan'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:test
+          format: table
+          exit-code: 0
+
+      # Stage 7 - Push
+      - name: '7. Push to ghcr.io'
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag ${{ env.IMAGE_NAME }}:test ${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.IMAGE_NAME }}:latest
+
+      # Stage 8 - Terraform
+      - name: '8. Setup Terraform'
+        uses: hashicorp/setup-terraform@v3
+      - name: '8. Terraform Apply'
+        run: |
+          cd infra/
+          terraform init
+          terraform apply -auto-approve
+
+      # Stage 9 - Smoke Test
+      - name: '9. Smoke Test'
+        run: |
+          sleep 10
+          curl -f http://localhost:8000/health
+          echo "Smoke test passed!"
